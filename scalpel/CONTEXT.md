@@ -444,7 +444,7 @@ router.handle_command(command: str, session_id: str) -> str
 We use ONE git repo (forked from upstream Cowrie). All team-owned code lives in a top-level `scalpel/` directory to keep it cleanly separated from Cowrie's source.
 
 ```
-UF-BEES/                            ← root of git repo (forked Cowrie)
+FerrariConvention/                  ← root of git repo (forked Cowrie)
 ├── src/                            ← Cowrie source — DO NOT EDIT
 ├── etc/
 │   ├── cowrie.cfg                  ← Cowrie config (Cowrie/FS Lead edits)
