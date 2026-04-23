@@ -351,9 +351,9 @@ class HoneyPotInteractiveProtocol(HoneyPotBaseProtocol, recvline.HistoricRecvLin
         self.llm_client = LLMClient()
         self.command_history = []
 
-        # Show welcome banner
-        welcome = f"Welcome to {self.hostname}\n"
-        self.terminal.write(welcome.encode("utf-8"))
+        # No synthetic welcome line — the reference Pi prints its MOTD via
+        # /etc/motd and /etc/update-motd.d/*, not a "Welcome to <host>" string.
+        # Any greeting here is a pre-auth fingerprint the red team would flag.
 
         self._show_prompt()
 

@@ -52,6 +52,10 @@ IDENTITY_DEPENDENT = {
     "cat /root/.ssh/authorized_keys", "cat /etc/sudoers",
     "w", "who", "users", "last -n 10",
     "sudo -n -l",
+    # Captured as `pi` on ref Pi; honeypot runs as `root`, and both responses
+    # are correct for their user — the difference is a test artifact.
+    "crontab -l",                # "no crontab for pi" vs "no crontab for root"
+    "cat /root/nothere",         # "Permission denied" (pi) vs "No such file" (root)
 }
 
 
@@ -151,7 +155,11 @@ def diff_one(expected, actual, kind):
     actual_combined = act_out + act_err
 
     if kind == "deterministic":
-        if expected_combined != actual_combined:
+        # Interactive-shell capture (clean_output) strips trailing blank lines
+        # to drop the next prompt line. Ground truth retains them. rstrip()
+        # both sides so pure trailing-whitespace drift isn't flagged as a
+        # fidelity gap — the red team can't see trailing newlines anyway.
+        if expected_combined.rstrip() != actual_combined.rstrip():
             findings.append("output mismatch")
     else:
         if bool(expected_combined.strip()) != bool(actual_combined.strip()):

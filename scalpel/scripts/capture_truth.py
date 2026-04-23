@@ -80,11 +80,14 @@ PROBES = [
     "env", "printenv", "history", "alias",
 
     # networking
-    "ip a", "ip addr show", "ip route", "ip link", "arp -a",
-    "ss -tulpn", "ss -tnp", "netstat -tulpn", "hostname -I",
+    "ip a", "ip addr show", "ip route", "ip link",
+    "arp -a", "arp", "route", "route -n",
+    "ss -tulpn", "ss -tnp", "ss -tulwn", "ss -tuln",
+    "netstat -tulpn", "netstat -rn", "netstat -an",
+    "hostname -I",
 
     # privilege recon
-    "sudo -n -l", "cat /etc/sudoers",
+    "sudo -n -l", "sudo -l", "cat /etc/sudoers",
     "ls -la /etc/cron.d", "ls -la /etc/crontab", "ls -la /etc/cron.daily",
     "crontab -l", "cat /root/.bash_history",
     "ls -la /root/.ssh", "cat /root/.ssh/authorized_keys",

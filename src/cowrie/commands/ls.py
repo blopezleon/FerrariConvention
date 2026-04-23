@@ -86,7 +86,11 @@ class Command_ls(HoneyPotCommand):
                     files.append(dotdot)
                 else:
                     files = [x for x in files if not x[fs.A_NAME].startswith(".")]
-                files.sort()
+                # Real `ls` uses locale-aware case-insensitive sort (LANG=en_US.UTF-8
+                # or C.UTF-8). Python's default list.sort() on [name, ...] nodes
+                # is case-sensitive ASCII order, which puts .ICE-unix before
+                # .font-unix. GNU ls does the reverse.
+                files.sort(key=lambda x: x[fs.A_NAME].lower())
             else:
                 file = self.protocol.fs.getfile(path)[:]
                 file[fs.A_NAME] = path
@@ -212,12 +216,30 @@ class Command_ls(HoneyPotCommand):
             permstr = "".join(perms)
             ctime = time.localtime(file[fs.A_CTIME])
 
-            line = "{} 1 {} {} {} {} {}{}".format(
+            # nlink: real Linux reports 1 for regular files/symlinks, and
+            # (2 + number of subdirectories) for directories — every subdir
+            # contributes a ".." entry pointing back. Cowrie's default of
+            # hardcoded "1" is a red-team tell on any `ls -la <dir>`.
+            if file[fs.A_TYPE] == fs.T_DIR:
+                nlink = 2 + sum(
+                    1 for c in (file[fs.A_CONTENTS] or [])
+                    if c[fs.A_TYPE] == fs.T_DIR
+                )
+            else:
+                nlink = 1
+
+            # Date format: real `ls -la` uses "%b %e %H:%M" for files modified
+            # within the last ~6 months and "%b %e  %Y" for older files. Our
+            # ground truth and most attacker probes touch recent files, so use
+            # the H:M form. Cowrie's default ISO "%Y-%m-%d %H:%M" is unusual
+            # on a Debian box and the red team would notice.
+            line = "{} {} {} {} {} {} {}{}".format(
                 permstr,
+                nlink,
                 self.uid2name(file[fs.A_UID]).ljust(user_name_str_extent),
                 self.gid2name(file[fs.A_GID]).ljust(group_name_str_extent),
                 formatted_sizes[i].rjust(filesize_str_extent),
-                time.strftime("%Y-%m-%d %H:%M", ctime),
+                time.strftime("%b %e %H:%M", ctime),
                 file[fs.A_NAME],
                 linktarget,
             )
