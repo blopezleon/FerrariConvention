@@ -15,6 +15,7 @@ from twisted.python import failure, log
 
 from cowrie.core.config import CowrieConfig
 from cowrie.llm.llm import LLMClient
+from cowrie.scalpel_bridge import on_command as scalpel_on_command
 
 
 def strip_markdown(text: str) -> str:
@@ -136,7 +137,25 @@ class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
 
         log.msg(eventid="cowrie.command.input", input=string, format="CMD: %(input)s")
 
-        # Use LLM client to get a response
+        # Tier 1: scalpel router (lookup table, compound split). Returns a
+        # string when it has a canned answer, None to defer to the LLM.
+        try:
+            canned = scalpel_on_command(string, str(self.sessionno))
+        except Exception as exc:  # noqa: BLE001
+            log.err(f"scalpel router error: {exc}")
+            canned = None
+
+        if canned is not None:
+            # Router answer already includes the command's native trailing \n;
+            # don't add another. Mirror the LLM path by recording in history
+            # so the LLM sees consistent context if later commands escalate.
+            self.command_history.append(f"User: {string}")
+            self.command_history.append(f"System: {canned.rstrip(chr(10))}")
+            self.terminal.write(canned.encode("utf-8"))
+            self._show_prompt()
+            return
+
+        # Fall through: let the LLM handle it.
         self._process_command_with_llm(string)
 
     def _process_command_with_llm(self, command: str) -> None:
@@ -247,7 +266,21 @@ class HoneyPotExecProtocol(HoneyPotBaseProtocol):
         HoneyPotBaseProtocol.connectionMade(self)
         self.setTimeout(60)
 
-        # Process the exec command with LLM
+        # Tier 1 first: if the scalpel router has a canned answer, write it
+        # and end the process synchronously. Otherwise escalate to the LLM.
+        try:
+            canned = scalpel_on_command(self.execcmd, str(self.sessionno))
+        except Exception as exc:  # noqa: BLE001
+            log.err(f"scalpel router error: {exc}")
+            canned = None
+
+        if canned is not None:
+            if canned:
+                self.terminal.write(canned.encode("utf-8"))
+            ret = failure.Failure(error.ProcessTerminated(exitCode=0))
+            self.terminal.transport.processEnded(ret)
+            return
+
         self._process_exec_with_llm()
 
     def _process_exec_with_llm(self) -> None:
