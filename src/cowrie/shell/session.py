@@ -77,12 +77,26 @@ class SSHSessionForCowrieUser:
 
     def closed(self) -> None:
         """
-        this is reliably called on both logout and disconnect
-        we notify the protocol here we lost the connection
-        """
-        if self.protocol:
-            self.protocol.connectionLost("disconnected")
-            self.protocol = None
+    this is reliably called on both logout and disconnect
+    we notify the protocol here we lost the connection
+    """
+    if self.protocol:
+        self.protocol.connectionLost("disconnected")
+        self.protocol = None
+    if self.server.fs:
+        import pickle
+        import os
+        import configparser
+        from cowrie.core.config import CowrieConfig
+        try:
+            fs_path = CowrieConfig.get("shell", "filesystem")
+        except configparser.NoSectionError:
+            fs_path = os.path.expanduser("~/cowrie/share/cowrie/fs.pickle")
+        tmp_path = fs_path + ".tmp"
+        with open(tmp_path, "wb") as f:
+            pickle.dump(self.server.fs.fs, f)
+        os.replace(tmp_path, fs_path)
+
 
     def eofReceived(self) -> None:
         if self.protocol:
