@@ -194,6 +194,7 @@ async def sse() -> StreamingResponse:
     async def _stream() -> AsyncIterator[str]:
         q: asyncio.Queue = asyncio.Queue(maxsize=200)
         _subscribers.add(q)
+        yield 'data: {"type":"ping"}\n\n'  # open the connection immediately
         try:
             while True:
                 try:
