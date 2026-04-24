@@ -953,8 +953,12 @@ commands["history"] = Command_history
 
 class Command_date(HoneyPotCommand):
     def call(self) -> None:
-        time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
-        self.write(f"{time.strftime('%a %b %d %H:%M:%S UTC %Y')}\n")
+        # Use the system's local timezone (astimezone() resolves against the
+        # Pi's /etc/localtime). Ref Pi was captured in EDT; cowrie's original
+        # "UTC always" was an instant red-team tell. Format matches Debian's
+        # default output: "Thu 23 Apr 12:21:36 EDT 2026".
+        now = datetime.datetime.now().astimezone()
+        self.write(f"{now.strftime('%a %e %b %H:%M:%S %Z %Y')}\n")
 
 
 commands["/bin/date"] = Command_date

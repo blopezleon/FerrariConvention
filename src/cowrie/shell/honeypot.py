@@ -44,6 +44,24 @@ class HoneyPotShell:
 
     def lineReceived(self, line: str) -> None:
         log.msg(eventid="cowrie.command.input", input=line, format="CMD: %(input)s")
+
+        # Scalpel pre-filter: Tier 1 lookup runs before cowrie's native dispatch.
+        # Returns a string for known probes (uname, lscpu, /proc/cpuinfo, ...),
+        # None to let cowrie handle the command natively via commands/ + fs.pickle.
+        # Exceptions (incl. TierUnavailable when Tier 2/3 aren't wired) fall
+        # through to native — the lookup miss is not a hard error.
+        try:
+            from cowrie.scalpel_bridge import on_command as scalpel_on_command
+            canned = scalpel_on_command(line, str(self.protocol.sessionno))
+        except Exception as exc:  # noqa: BLE001
+            log.err(f"scalpel router error: {exc}")
+            canned = None
+
+        if canned is not None:
+            self.protocol.terminal.write(canned.encode("utf-8"))
+            self.showPrompt()
+            return
+
         self.lexer = shlex.shlex(instream=line, punctuation_chars=True, posix=True)
         # Add these special characters that are not in the default lexer
         self.lexer.wordchars += "@%{}=$:+^,()`"
