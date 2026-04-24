@@ -124,8 +124,20 @@ header {
 .lat-p50 { font-size: 16px; font-weight: bold; }
 .lat-p95 { font-size: 10px; color: #3a3a5a; margin-top: 2px; }
 
+/* ── Bottom row wrapper ── */
+.bottom-panels {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1px;
+  background: #1c1c30;
+  min-height: 0;
+}
+
 /* ── Command table ── */
-.cmd-scroll { overflow: hidden; flex: 1; min-height: 0; }
+.cmd-scroll { overflow-y: auto; flex: 1; min-height: 0; }
+.cmd-scroll::-webkit-scrollbar { width: 4px; }
+.cmd-scroll::-webkit-scrollbar-track { background: transparent; }
+.cmd-scroll::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 2px; }
 table { width: 100%; border-collapse: collapse; }
 th {
   text-align: left;
@@ -164,7 +176,10 @@ tbody tr:first-child td { animation: flash .4s ease-out; }
 .b3 { background:#2e0e00; color:#ff6b35; border:1px solid #ff6b3540; }
 
 /* ── Alert feed ── */
-.alert-scroll { overflow: hidden; flex: 1; min-height: 0; }
+.alert-scroll { overflow-y: auto; flex: 1; min-height: 0; }
+.alert-scroll::-webkit-scrollbar { width: 4px; }
+.alert-scroll::-webkit-scrollbar-track { background: transparent; }
+.alert-scroll::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 2px; }
 .alert-item {
   padding: 7px 8px;
   margin-bottom: 5px;
@@ -230,27 +245,27 @@ tbody tr:first-child td { animation: flash .4s ease-out; }
     <div class="scatter-wrap"><canvas id="scatter"></canvas></div>
   </div>
 
-  <!-- Bottom middle: command feed -->
-  <div class="panel">
-    <div class="panel-title">Live Command Feed</div>
-    <div class="cmd-scroll">
-      <table>
-        <thead><tr>
-          <th style="width:60px">Time</th>
-          <th>Command</th>
-          <th style="width:36px">Tier</th>
-          <th style="width:64px">Latency</th>
-          <th style="width:70px">Session</th>
-        </tr></thead>
-        <tbody id="cmd-body"></tbody>
-      </table>
+  <!-- Bottom row: command feed + alerts side by side -->
+  <div class="bottom-panels">
+    <div class="panel">
+      <div class="panel-title">Live Command Feed</div>
+      <div class="cmd-scroll">
+        <table>
+          <thead><tr>
+            <th style="width:60px">Time</th>
+            <th>Command</th>
+            <th style="width:36px">Tier</th>
+            <th style="width:64px">Latency</th>
+            <th style="width:70px">Session</th>
+          </tr></thead>
+          <tbody id="cmd-body"></tbody>
+        </table>
+      </div>
     </div>
-  </div>
-
-  <!-- Bottom right: alert feed -->
-  <div class="panel">
-    <div class="panel-title">Tier 3 Escalations</div>
-    <div class="alert-scroll" id="alert-feed"></div>
+    <div class="panel">
+      <div class="panel-title">Tier 3 Escalations</div>
+      <div class="alert-scroll" id="alert-feed"></div>
+    </div>
   </div>
 
 </div>
