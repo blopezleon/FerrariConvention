@@ -1,7 +1,7 @@
 attrs==26.1.0
 bcrypt==5.0.0
 boto3>=1.34.0
-cryptography==46.0.6
+cryptography==46.0.7
 hyperlink==21.0.0
 idna==3.11
 packaging==26.0
