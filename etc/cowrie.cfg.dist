@@ -462,6 +462,30 @@ log_raw = false
 # (default: false)
 #debug = false
 
+# Enable in-process response caching to avoid redundant Bedrock calls
+cache_enabled = true
+
+# Time-to-live for cache entries in seconds (must be > 0)
+cache_ttl_seconds = 3600
+
+# Maximum number of entries in the response cache (must be > 0)
+cache_max_entries = 1000
+
+# Per-call timeout in seconds; set to 0 to disable timeout
+timeout_seconds = 10.0
+
+# Maximum number of retry attempts on ThrottlingException (exponential back-off)
+max_retries = 2
+
+# Size of the urllib3 connection pool for concurrent Bedrock calls
+max_pool_connections = 10
+
+# Enable streaming response delivery via InvokeModelWithResponseStream
+streaming = false
+
+# Maximum total character count for the prompt sent to Bedrock
+max_prompt_chars = 500
+
 
 # ============================================================================
 # Shell Options
