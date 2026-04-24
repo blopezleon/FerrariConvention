@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCALPEL // RED TEAM TELEMETRY</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0b0b16;
+  color: #c0c0d0;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid #1c1c30;
+  background: #0e0e1c;
+  flex-shrink: 0;
+}
+.hdr-title {
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 5px;
+  color: #e0e0ff;
+}
+.hdr-right { display: flex; gap: 18px; align-items: center; font-size: 11px; color: #444; }
+#live-dot { color: #00ff88; animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+#conn-status { color: #ff6b35; }
+#conn-status.ok { color: #00ff88; }
+
+/* ── Stat cards ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid #1c1c30;
+  flex-shrink: 0;
+}
+.stat {
+  padding: 12px 16px;
+  background: #0e0e1c;
+  text-align: center;
+  border-right: 1px solid #1c1c30;
+}
+.stat:last-child { border-right: none; }
+.stat .lbl {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #3a3a5a;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.stat .val { font-size: 28px; font-weight: bold; }
+.g { color: #00ff88; }
+.c { color: #00bfff; }
+.o { color: #ff6b35; }
+.w { color: #e0e0ff; }
+
+/* ── Main layout ── */
+.main {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1px;
+  flex: 1;
+  min-height: 0;
+  background: #1c1c30;
+}
+
+/* ── Panels ── */
+.panel {
+  background: #0e0e1c;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-title {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #3a3a5a;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+/* Donut panel spans two rows */
+.panel-donut {
+  grid-row: span 2;
+  align-items: center;
+}
+.donut-wrap {
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+  margin-bottom: 16px;
+}
+
+/* ── Latency cards under donut ── */
+.lat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+.lat-card {
+  background: #0b0b16;
+  padding: 8px;
+  border-radius: 4px;
+  text-align: center;
+  border: 1px solid #1c1c30;
+}
+.lat-tier { font-size: 9px; letter-spacing: 2px; margin-bottom: 3px; }
+.lat-p50 { font-size: 16px; font-weight: bold; }
+.lat-p95 { font-size: 10px; color: #3a3a5a; margin-top: 2px; }
+
+/* ── Command table ── */
+.cmd-scroll { overflow: hidden; flex: 1; min-height: 0; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left;
+  padding: 3px 6px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #3a3a5a;
+  border-bottom: 1px solid #1c1c30;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  background: #0e0e1c;
+}
+td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #0d0d18;
+  font-size: 11px;
+  max-width: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+tbody tr:first-child td { animation: flash .4s ease-out; }
+@keyframes flash { from{background:#1a1a3a} to{background:transparent} }
+
+.badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.b1 { background:#002a1a; color:#00ff88; border:1px solid #00ff8840; }
+.b2 { background:#001a2e; color:#00bfff; border:1px solid #00bfff40; }
+.b3 { background:#2e0e00; color:#ff6b35; border:1px solid #ff6b3540; }
+
+/* ── Alert feed ── */
+.alert-scroll { overflow: hidden; flex: 1; min-height: 0; }
+.alert-item {
+  padding: 7px 8px;
+  margin-bottom: 5px;
+  border-left: 2px solid #ff6b35;
+  background: #180800;
+  border-radius: 0 3px 3px 0;
+  animation: flash .4s ease-out;
+}
+.alert-cmd { color: #ff6b35; font-size: 11px; margin-bottom: 2px; word-break: break-all; }
+.alert-meta { color: #3a3a5a; font-size: 10px; }
+
+/* ── Scatter panel ── */
+.panel-scatter { padding: 14px 16px; }
+.scatter-wrap { flex: 1; min-height: 0; position: relative; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-title">SCALPEL // RED TEAM TELEMETRY</div>
+  <div class="hdr-right">
+    <span id="live-dot">● LIVE</span>
+    <span id="conn-status">connecting…</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div class="stats-row">
+  <div class="stat"><div class="lbl">Commands</div><div class="val g" id="s-cmds">0</div></div>
+  <div class="stat"><div class="lbl">Tier 3 Escalations</div><div class="val o" id="s-t3">0</div></div>
+  <div class="stat"><div class="lbl">Sessions</div><div class="val c" id="s-sess">0</div></div>
+  <div class="stat"><div class="lbl">Login Attempts</div><div class="val w" id="s-logins">0</div></div>
+</div>
+
+<div class="main">
+
+  <!-- Left column: donut + latency cards -->
+  <div class="panel panel-donut">
+    <div class="panel-title">Tier Routing</div>
+    <div class="donut-wrap"><canvas id="donut"></canvas></div>
+    <div class="lat-grid">
+      <div class="lat-card">
+        <div class="lat-tier g">TIER 1</div>
+        <div class="lat-p50 g" id="l1-p50">—</div>
+        <div class="lat-p95" id="l1-p95">p95 —</div>
+      </div>
+      <div class="lat-card">
+        <div class="lat-tier c">TIER 2</div>
+        <div class="lat-p50 c" id="l2-p50">—</div>
+        <div class="lat-p95" id="l2-p95">p95 —</div>
+      </div>
+      <div class="lat-card">
+        <div class="lat-tier o">TIER 3</div>
+        <div class="lat-p50 o" id="l3-p50">—</div>
+        <div class="lat-p95" id="l3-p95">p95 —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top right: scatter chart -->
+  <div class="panel panel-scatter">
+    <div class="panel-title">Response Latency per Command (log scale)</div>
+    <div class="scatter-wrap"><canvas id="scatter"></canvas></div>
+  </div>
+
+  <!-- Bottom middle: command feed -->
+  <div class="panel">
+    <div class="panel-title">Live Command Feed</div>
+    <div class="cmd-scroll">
+      <table>
+        <thead><tr>
+          <th style="width:60px">Time</th>
+          <th>Command</th>
+          <th style="width:36px">Tier</th>
+          <th style="width:64px">Latency</th>
+          <th style="width:70px">Session</th>
+        </tr></thead>
+        <tbody id="cmd-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bottom right: alert feed -->
+  <div class="panel">
+    <div class="panel-title">Tier 3 Escalations</div>
+    <div class="alert-scroll" id="alert-feed"></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let cmdIdx = 0;
+let totalCmds = 0, t3Count = 0, sessions = 0, logins = 0;
+let tierCounts = {1:0, 2:0, 3:0};
+let lats = {1:[], 2:[], 3:[]};
+const MAX_LAT_HISTORY = 600;
+const MAX_SCATTER = 150;
+
+// ── Chart setup ────────────────────────────────────────────────────────────
+Chart.defaults.color = '#3a3a5a';
+Chart.defaults.borderColor = '#1c1c30';
+
+const donutChart = new Chart(document.getElementById('donut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Tier 1  Lookup', 'Tier 2  Ollama', 'Tier 3  Bedrock'],
+    datasets: [{
+      data: [0, 0, 0],
+      backgroundColor: ['#00ff8820','#00bfff20','#ff6b3520'],
+      borderColor:     ['#00ff88',  '#00bfff',  '#ff6b35' ],
+      borderWidth: 2,
+      hoverBackgroundColor: ['#00ff8840','#00bfff40','#ff6b3540'],
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    cutout: '68%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color:'#666', font:{size:10, family:'Courier New'}, boxWidth:10, padding:8 } }
+    }
+  }
+});
+
+const scatterChart = new Chart(document.getElementById('scatter'), {
+  type: 'scatter',
+  data: {
+    datasets: [
+      { label:'Tier 1', data:[], backgroundColor:'#00ff88bb', pointRadius:4, pointHoverRadius:6 },
+      { label:'Tier 2', data:[], backgroundColor:'#00bfffbb', pointRadius:5, pointHoverRadius:7 },
+      { label:'Tier 3', data:[], backgroundColor:'#ff6b35bb', pointRadius:6, pointHoverRadius:8 },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        type: 'linear',
+        ticks: { color:'#3a3a5a', maxTicksLimit:8 },
+        grid: { color:'#111120' },
+        title: { display:false },
+      },
+      y: {
+        type: 'logarithmic',
+        ticks: {
+          color: '#3a3a5a',
+          callback: v => v<1 ? v.toFixed(2) : v<10 ? v.toFixed(1) : Math.round(v),
+        },
+        grid: { color:'#111120' },
+        title: { display:true, text:'ms', color:'#3a3a5a', font:{size:10} },
+      }
+    },
+    plugins: {
+      legend: { labels:{ color:'#666', font:{size:10, family:'Courier New'}, boxWidth:8, padding:10 } },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw.y.toFixed(2)}ms` } }
+    }
+  }
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function pct(arr, p) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a,b)=>a-b);
+  return s[Math.min(Math.floor(s.length*p/100), s.length-1)];
+}
+
+function fmtMs(v) {
+  if (v === null) return '—';
+  return v < 1 ? v.toFixed(2)+'ms' : v < 100 ? v.toFixed(1)+'ms' : Math.round(v)+'ms';
+}
+
+function fmtTime(ts) {
+  return new Date(ts*1000).toLocaleTimeString('en-US',{hour12:false});
+}
+
+function tierColor(t) { return {1:'#00ff88',2:'#00bfff',3:'#ff6b35'}[t]||'#666'; }
+
+function updateLatCards() {
+  for (let t=1;t<=3;t++) {
+    document.getElementById(`l${t}-p50`).textContent = fmtMs(pct(lats[t],50));
+    document.getElementById(`l${t}-p95`).textContent = 'p95 '+fmtMs(pct(lats[t],95));
+  }
+}
+
+function pushLat(tier, lat) {
+  lats[tier].push(lat);
+  if (lats[tier].length > MAX_LAT_HISTORY) lats[tier].shift();
+}
+
+function addScatter(tier, lat) {
+  const di = tier-1;
+  if (di<0||di>2) return;
+  scatterChart.data.datasets[di].data.push({x: cmdIdx, y: Math.max(lat, 0.001)});
+  if (scatterChart.data.datasets[di].data.length > MAX_SCATTER)
+    scatterChart.data.datasets[di].data.shift();
+  scatterChart.update('none');
+}
+
+function prependCmd(ev) {
+  const tbody = document.getElementById('cmd-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    `<td style="color:#3a3a5a">${fmtTime(ev.ts)}</td>`+
+    `<td style="color:#c0c0d0">${esc(ev.cmd)}</td>`+
+    `<td><span class="badge b${ev.tier}">${['','T1','T2','T3'][ev.tier]||'??'}</span></td>`+
+    `<td style="color:${tierColor(ev.tier)}">${fmtMs(ev.latency_ms)}</td>`+
+    `<td style="color:#3a3a5a">${ev.session_id.slice(0,8)}</td>`;
+  tbody.insertBefore(tr, tbody.firstChild);
+  while (tbody.rows.length > 18) tbody.deleteRow(tbody.rows.length-1);
+}
+
+function prependAlert(ev) {
+  const feed = document.getElementById('alert-feed');
+  const div = document.createElement('div');
+  div.className = 'alert-item';
+  div.innerHTML =
+    `<div class="alert-cmd">${esc(ev.cmd.slice(0,90))}</div>`+
+    `<div class="alert-meta">${fmtTime(ev.ts)} · ${fmtMs(ev.latency_ms)} · ${ev.session_id.slice(0,8)}</div>`;
+  feed.insertBefore(div, feed.firstChild);
+  while (feed.children.length > 12) feed.removeChild(feed.lastChild);
+}
+
+// ── SSE ────────────────────────────────────────────────────────────────────
+function connect() {
+  const es = new EventSource('/events');
+  const st = document.getElementById('conn-status');
+
+  es.onopen = () => { st.textContent='connected'; st.className='ok'; };
+  es.onerror = () => { st.textContent='reconnecting…'; st.className=''; };
+
+  es.onmessage = e => {
+    let ev;
+    try { ev = JSON.parse(e.data); } catch(_) { return; }
+    if (ev.type==='ping') return;
+
+    if (ev.type==='command') {
+      cmdIdx++;
+      totalCmds++;
+      tierCounts[ev.tier] = (tierCounts[ev.tier]||0)+1;
+      pushLat(ev.tier, ev.latency_ms);
+
+      if (ev.tier===3) { t3Count++; document.getElementById('s-t3').textContent=t3Count; prependAlert(ev); }
+      document.getElementById('s-cmds').textContent=totalCmds;
+
+      donutChart.data.datasets[0].data=[tierCounts[1],tierCounts[2],tierCounts[3]];
+      donutChart.update('none');
+      addScatter(ev.tier, ev.latency_ms);
+      updateLatCards();
+      prependCmd(ev);
+    }
+
+    if (ev.type==='session') {
+      sessions=ev.total;
+      document.getElementById('s-sess').textContent=sessions;
+    }
+
+    if (ev.type==='login') {
+      logins=ev.total;
+      document.getElementById('s-logins').textContent=logins;
+    }
+  };
+}
+
+// ── Snapshot ───────────────────────────────────────────────────────────────
+async function loadSnapshot() {
+  let snap;
+  try { snap = await fetch('/api/snapshot').then(r=>r.json()); }
+  catch(_) { return; }
+
+  for (const [t,n] of Object.entries(snap.tier_counts)) {
+    const ti = parseInt(t);
+    if (ti>0) { tierCounts[ti]=(tierCounts[ti]||0)+n; totalCmds+=n; }
+  }
+  t3Count = snap.tier_counts[3]||0;
+  sessions = snap.session_count;
+  logins   = snap.login_attempts;
+
+  document.getElementById('s-cmds').textContent  = totalCmds;
+  document.getElementById('s-t3').textContent    = t3Count;
+  document.getElementById('s-sess').textContent  = sessions;
+  document.getElementById('s-logins').textContent= logins;
+
+  donutChart.data.datasets[0].data=[tierCounts[1],tierCounts[2],tierCounts[3]];
+  donutChart.update('none');
+
+  // Seed latency state from snapshot percentiles (approximate — no raw values)
+  for (const [ts, obj] of Object.entries(snap.latency||{})) {
+    const ti = parseInt(ts);
+    if (obj.p50>0) { lats[ti].push(obj.p50); }
+    if (obj.p95>0) { lats[ti].push(obj.p50, obj.p95, obj.p95); }
+  }
+  updateLatCards();
+
+  // Seed command table + scatter from recent history (oldest first)
+  for (const ev of [...(snap.recent_commands||[])].reverse().slice(-30)) {
+    cmdIdx++;
+    addScatter(ev.tier, ev.latency_ms);
+    prependCmd(ev);
+  }
+  for (const ev of [...(snap.recent_alerts||[])].reverse().slice(-8)) {
+    prependAlert(ev);
+  }
+}
+
+// ── Clock ─────────────────────────────────────────────────────────────────
+setInterval(()=>{ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false}); }, 1000);
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+loadSnapshot();
+connect();
+</script>
+</body>
+</html>

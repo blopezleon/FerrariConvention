@@ -36,6 +36,11 @@ clean: ## Clean temporary files
 	rm -rf _trial_temp build dist src/_trial_temp src/Cowrie.egg-info
 	make -C docs clean
 
+.PHONY: dashboard
+dashboard: ## Start SCALPEL telemetry dashboard (http://localhost:8765)
+	@python -c "import fastapi, uvicorn" 2>/dev/null || pip install fastapi uvicorn
+	python -m scalpel.dashboard.server
+
 .PHONY: pre-commit
 pre-commit: ## Run pre-commit checks
 	pre-commit run --all-files
