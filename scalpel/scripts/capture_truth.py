@@ -114,6 +114,62 @@ PROBES = [
 
     # misc
     "ls -la ~", "file /bin/bash", "readlink -f /bin/sh",
+
+    # --- additions (deterministic, red-team-probed, not in lookup yet) ---
+
+    # pi-specific fingerprint surface
+    "cat /etc/machine-id", "cat /etc/timezone", "cat /etc/rpi-issue",
+    "cat /boot/config.txt", "cat /boot/cmdline.txt",
+    "cat /boot/firmware/config.txt", "cat /boot/firmware/cmdline.txt",
+    "ls /boot", "ls -la /boot", "ls /boot/firmware",
+
+    # uname variants the red team scripts often collect together
+    "uname", "uname -o", "uname -p", "uname -i", "uname -n",
+
+    # kernel / hardware inventory
+    "lsmod", "lsblk", "lspci", "lsusb",
+    "cat /proc/cmdline", "cat /proc/mounts", "cat /proc/modules",
+
+    # locale / timezone
+    "locale", "timedatectl", "readlink /etc/localtime",
+
+    # apt / package surface
+    "cat /etc/apt/sources.list", "ls /etc/apt/sources.list.d/",
+    "apt-cache policy", "apt --version", "dpkg --version",
+
+    # ssh / services
+    "systemctl is-active ssh", "systemctl is-enabled ssh",
+    "systemctl status ssh --no-pager", "cat /etc/ssh/sshd_config.d/",
+    "ls /etc/ssh",
+
+    # common file-tree reconnaissance
+    "ls /var", "ls -la /var", "ls /opt", "ls -la /opt",
+    "ls /usr", "ls /usr/bin", "ls /usr/sbin", "ls /usr/local",
+    "ls /media", "ls /mnt",
+
+    # file metadata on canonical binaries / configs
+    "stat /bin/bash", "stat /bin/sh", "stat /usr/bin/python3",
+    "stat /etc/os-release", "stat /etc/hostname",
+    "file /bin/sh", "file /usr/bin/python3", "file /etc/passwd",
+
+    # individual env vars (printenv KEY form the red team uses
+    # to isolate specific values)
+    "printenv HOME", "printenv USER", "printenv PATH",
+    "printenv SHELL", "printenv LANG",
+
+    # common tool lookups we missed
+    "which python3", "which sh", "which ls", "which cat",
+    "which sudo", "which apt", "which apt-get", "which docker",
+    "which git", "which vim", "which nano",
+    "type ls", "type cd", "type echo",
+
+    # pi/arm-specific binaries
+    "which vcgencmd", "vcgencmd version",
+
+    # misc red-team favorites
+    "getent passwd root", "getent group root", "groups",
+    "cat /etc/login.defs", "cat /etc/host.conf", "cat /etc/fstab",
+    "cat /etc/bash.bashrc", "cat /etc/profile",
 ]
 
 # Slow probes: run once — output is generally stable and full repeats
