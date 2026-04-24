@@ -425,6 +425,45 @@ log_raw = false
 
 
 # ============================================================================
+# Amazon Bedrock Options
+# Enriches "command not found" responses in the shell backend using Bedrock.
+# Requires boto3 and valid AWS credentials (run `aws configure` for quickstart).
+# ============================================================================
+
+[bedrock]
+
+# Enable Bedrock error enrichment for the shell backend.
+# When enabled, unknown commands get a realistic LLM-generated response
+# instead of the static "-bash: <cmd>: command not found" message.
+# (default: false)
+#enabled = false
+
+# Bedrock model ID to use.
+# Nova Micro is fast and cheap; good default for honeypot use.
+# Other options: amazon.nova-lite-v1:0, amazon.nova-pro-v1:0,
+#                anthropic.claude-3-haiku-20240307-v1:0
+# (default: amazon.nova-micro-v1:0)
+#model_id = amazon.nova-micro-v1:0
+
+# AWS region where Bedrock is available.
+# (default: us-east-1)
+#region = us-east-1
+
+# Maximum tokens in the response.
+# (default: 300)
+#max_tokens = 300
+
+# Temperature for response generation (0.0-1.0).
+# Lower values produce more deterministic, realistic shell output.
+# (default: 0.3)
+#temperature = 0.3
+
+# Enable debug logging for Bedrock requests/responses.
+# (default: false)
+#debug = false
+
+
+# ============================================================================
 # Shell Options
 # Options around Cowrie's Shell Emulation
 # ============================================================================
