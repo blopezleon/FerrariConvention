@@ -19,8 +19,15 @@ implements natively and walks the fs.pickle for.
 from __future__ import annotations
 
 import re
+import time
 
 from scalpel.router import lookup_table
+
+try:
+    from scalpel.dashboard.telemetry import record as _tel
+except ImportError:
+    def _tel(*_a, **_kw) -> None:  # type: ignore[misc]
+        pass
 
 
 class TierUnavailable(Exception):
@@ -65,8 +72,10 @@ def handle_command(command: str, session_id: str) -> str:
         return "".join(handle_command(p, session_id) for p in parts)
 
     # Step 1: Tier 1 static lookup
+    _t0 = time.perf_counter()
     canned = lookup_table.get(cmd)
     if canned is not None:
+        _tel(1, cmd, (time.perf_counter() - _t0) * 1000, session_id)
         return canned
 
     # Step 2: GOODLLM allowlist -> Tier 2 (local Ollama)
@@ -109,9 +118,13 @@ def _tier2(cmd: str, session_id: str) -> str:
         from scalpel.local_llm import client as llm  # type: ignore[import-not-found]
     except ImportError as e:
         raise TierUnavailable(f"Tier 2 (local LLM) not ready: {e}") from e
+    _t0 = time.perf_counter()
     try:
-        return llm.generate(cmd, {"session_id": session_id})
+        result = llm.generate(cmd, {"session_id": session_id})
+        _tel(2, cmd, (time.perf_counter() - _t0) * 1000, session_id)
+        return result
     except llm.OllamaError as e:
+        _tel(2, cmd, (time.perf_counter() - _t0) * 1000, session_id, "error")
         # Network/decode failure. Fall through to cowrie native rather than
         # returning garbage or hanging — a missing `uptime` is less of a
         # tell than a `uptime` that takes 30 seconds or emits JSON errors.
@@ -123,9 +136,13 @@ def _tier3(cmd: str, session_id: str) -> str:
         from scalpel.aws import client as aws  # type: ignore[import-not-found]
     except ImportError as e:
         raise TierUnavailable(f"Tier 3 (AWS) not ready: {e}") from e
+    _t0 = time.perf_counter()
     try:
-        return aws.escalate(cmd, session_history=[])
+        result = aws.escalate(cmd, session_history=[])
+        _tel(3, cmd, (time.perf_counter() - _t0) * 1000, session_id)
+        return result
     except aws.BedrockError as e:
+        _tel(3, cmd, (time.perf_counter() - _t0) * 1000, session_id, "error")
         # boto3 missing, credentials missing/expired, network blip, Bedrock
         # throttling, etc. Fall through to Tier 2 fallback via
         # _escalate_with_fallback, then to cowrie native if Tier 2 is also

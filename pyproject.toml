@@ -69,6 +69,7 @@ slack = ["slackclient"]
 influxdb = ["influxdb"]
 dev = [
 "build==1.4.4",
+"hypothesis>=6.0.0",
 "coverage==7.10.7",
 "mypy-extensions==1.1.0; platform_python_implementation=='CPython'",
 "mypy-zope==1.0.14; platform_python_implementation=='CPython'",
