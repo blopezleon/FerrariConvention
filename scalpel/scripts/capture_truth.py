@@ -170,6 +170,48 @@ PROBES = [
     "getent passwd root", "getent group root", "groups",
     "cat /etc/login.defs", "cat /etc/host.conf", "cat /etc/fstab",
     "cat /etc/bash.bashrc", "cat /etc/profile",
+
+    # pi-user discovery — Pi OS always has a pi account, red team
+    # enumerates it reflexively
+    "getent passwd pi", "groups pi", "finger pi",
+    "ls /home/pi", "ls -la /home/pi", "ls -la /home",
+    "cat /home/pi/.bashrc", "cat /home/pi/.bash_history",
+    "cat /home/pi/.profile", "ls -la /home/pi/.ssh",
+    "cat /home/pi/.ssh/authorized_keys",
+
+    # network config (legacy but still probed)
+    "cat /etc/network/interfaces", "cat /etc/dhcpcd.conf",
+    "cat /etc/NetworkManager/NetworkManager.conf",
+    "ls /etc/NetworkManager/system-connections/",
+
+    # firewall surface
+    "iptables -L -n", "iptables -t nat -L -n", "iptables -L -v",
+    "ufw status", "nft list ruleset",
+
+    # persistence detail — individual cron files
+    "cat /etc/crontab",
+    "ls /etc/cron.hourly", "ls /etc/cron.weekly", "ls /etc/cron.monthly",
+    "ls /etc/cron.yearly", "ls /var/spool/cron/crontabs",
+    "ls /etc/init.d",
+
+    # container / VM detection — always run by any serious red teamer
+    "systemd-detect-virt", "systemd-detect-virt -c", "systemd-detect-virt -v",
+    "cat /proc/1/cgroup", "cat /proc/1/sched",
+    "ls -la /.dockerenv", "ls -la /run/.containerenv",
+
+    # log hunting — these are dynamic but red team still runs them
+    "ls -la /var/log", "tail -20 /var/log/syslog",
+    "tail -20 /var/log/auth.log", "ls /var/log/apt",
+    "cat /var/log/dpkg.log",
+
+    # defense tool detection
+    "which osqueryd", "which falco", "which auditctl",
+    "which clamscan", "which rkhunter", "which chkrootkit",
+    "systemctl status auditd --no-pager",
+
+    # bash startup / profile surface
+    "ls /etc/profile.d", "cat /etc/skel/.bashrc",
+    "cat /etc/skel/.profile", "cat ~/.bashrc", "cat ~/.profile",
 ]
 
 # Slow probes: run once — output is generally stable and full repeats
@@ -182,6 +224,19 @@ SLOW_PROBES = [
     "apt list --installed 2>/dev/null",
     "du -sh /home/*",
     "find / -name '*.sql' 2>/dev/null",
+    # Classic red-team credential / key sweeps. All slow on a full fs walk.
+    "find / -name id_rsa 2>/dev/null",
+    "find / -name id_rsa.pub 2>/dev/null",
+    "find / -name authorized_keys 2>/dev/null",
+    "find / -name '*.pem' 2>/dev/null",
+    "find / -name '*.key' 2>/dev/null",
+    "find / -name 'known_hosts' 2>/dev/null",
+    "find / -name '.git' -type d 2>/dev/null",
+    "find / -name 'wp-config.php' 2>/dev/null",
+    "find / -name 'credentials*' 2>/dev/null",
+    "find /opt -type f 2>/dev/null",
+    "find /home -type f 2>/dev/null",
+    "find /tmp /var/tmp /dev/shm -type f 2>/dev/null",
 ]
 
 
