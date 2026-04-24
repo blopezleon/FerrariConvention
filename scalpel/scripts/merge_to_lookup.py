@@ -60,6 +60,11 @@ DYNAMIC_SKIP: frozenset[str] = frozenset({
     "netstat -tulpn", "netstat -rn", "netstat -an",
     # pwd depends on cwd; cowrie tracks this per-session.
     "pwd",
+    # Log tails are dynamic — new lines every second; only looked stable
+    # during the 5-run capture window. Red team tails repeatedly will see
+    # identical output and detect.
+    "tail -20 /var/log/auth.log", "tail -20 /var/log/syslog",
+    "cat /var/log/dpkg.log",  # static during session but updates on apt
     # echo VAR expands the env, handled natively.
     "echo $USER", "echo $HOME", "echo $PATH", "echo $SHELL",
 })
