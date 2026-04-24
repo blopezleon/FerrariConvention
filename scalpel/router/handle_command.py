@@ -123,4 +123,11 @@ def _tier3(cmd: str, session_id: str) -> str:
         from scalpel.aws import client as aws  # type: ignore[import-not-found]
     except ImportError as e:
         raise TierUnavailable(f"Tier 3 (AWS) not ready: {e}") from e
-    return aws.escalate(cmd, session_history=[])
+    try:
+        return aws.escalate(cmd, session_history=[])
+    except aws.BedrockError as e:
+        # boto3 missing, credentials missing/expired, network blip, Bedrock
+        # throttling, etc. Fall through to Tier 2 fallback via
+        # _escalate_with_fallback, then to cowrie native if Tier 2 is also
+        # down. A silent fallback is less conspicuous than a visible error.
+        raise TierUnavailable(f"Tier 3 (Bedrock) failed: {e}") from e
